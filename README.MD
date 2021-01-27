@@ -1,3 +1,3 @@
 # gf-tracing
-GoFrame tracing demonstration.
+`GoFrame` tracing feature demonstration.
 

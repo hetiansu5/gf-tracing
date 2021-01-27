@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"gftracing/tracing"
-	"github.com/gogf/gf/.example/net/gtrace/5.grpc+db+redis+log/protobuf/user"
+	"gftracing/grpc+db+redis+log/protobuf/user"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/gtrace"
+	"github.com/gogf/katyusha/krpc"
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
 )
 
@@ -15,6 +15,13 @@ const (
 	JaegerEndpoint = "http://localhost:14268/api/traces"
 	ServiceName    = "tracing-grpc-client"
 )
+
+func main() {
+	flush := initTracer()
+	defer flush()
+
+	StartRequests()
+}
 
 // initTracer creates a new trace provider instance and registers it as global trace provider.
 func initTracer() func() {
@@ -24,7 +31,7 @@ func initTracer() func() {
 		jaeger.WithProcess(jaeger.Process{
 			ServiceName: ServiceName,
 		}),
-		jaeger.WithSDK(&sdkTrace.Config{DefaultSampler: sdkTrace.AlwaysSample()}),
+		jaeger.WithSDK(&trace.Config{DefaultSampler: trace.AlwaysSample()}),
 	)
 	if err != nil {
 		g.Log().Fatal(err)
@@ -42,7 +49,8 @@ func StartRequests() {
 		grpc.WithInsecure(),
 		grpc.WithBlock(),
 		grpc.WithChainUnaryInterceptor(
-			tracing.UnaryClientInterceptor,
+			krpc.Client.UnaryError,
+			krpc.Client.UnaryTracing,
 		),
 	)
 
@@ -68,7 +76,8 @@ func StartRequests() {
 		Id: insertRes.Id,
 	})
 	if err != nil {
-		g.Log().Ctx(ctx).Fatalf(`%+v`, err)
+		g.Log().Ctx(ctx).Printf(`%+v`, err)
+		return
 	}
 	g.Log().Ctx(ctx).Println("query:", queryRes)
 
@@ -77,15 +86,19 @@ func StartRequests() {
 		Id: insertRes.Id,
 	})
 	if err != nil {
-		g.Log().Ctx(ctx).Fatalf(`%+v`, err)
+		g.Log().Ctx(ctx).Printf(`%+v`, err)
+		return
 	}
-	g.Log().Ctx(ctx).Println("delete:", "ok")
+	g.Log().Ctx(ctx).Println("delete:", insertRes.Id)
 
-}
+	// Delete with error.
+	_, err = client.Delete(ctx, &user.DeleteReq{
+		Id: -1,
+	})
+	if err != nil {
+		g.Log().Ctx(ctx).Printf(`%+v`, err)
+		return
+	}
+	g.Log().Ctx(ctx).Println("delete:", -1)
 
-func main() {
-	flush := initTracer()
-	defer flush()
-
-	StartRequests()
 }

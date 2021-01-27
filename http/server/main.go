@@ -1,37 +1,18 @@
 package main
 
 import (
-	"github.com/gogf/gf/errors/gerror"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
+	"github.com/gogf/gf/net/gtrace"
+	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace"
 )
-
-type tracingApi struct{}
 
 const (
 	JaegerEndpoint = "http://localhost:14268/api/traces"
-	ServiceName    = "tracing-demo-redis"
+	ServiceName    = "tracing-http-server"
 )
-
-func (api *tracingApi) Set(r *ghttp.Request) {
-	_, err := g.Redis().Ctx(r.Context()).Do("SET", r.GetString("key"), r.GetString("value"))
-	if err != nil {
-		r.Response.WriteExit(gerror.Current(err))
-	}
-	r.Response.Write("ok")
-}
-
-func (api *tracingApi) Get(r *ghttp.Request) {
-	value, err := g.Redis().Ctx(r.Context()).DoVar(
-		"GET", r.GetString("key"),
-	)
-	if err != nil {
-		r.Response.WriteExit(gerror.Current(err))
-	}
-	r.Response.Write(value.String())
-}
 
 // initTracer creates a new trace provider instance and registers it as global trace provider.
 func initTracer() func() {
@@ -41,7 +22,7 @@ func initTracer() func() {
 		jaeger.WithProcess(jaeger.Process{
 			ServiceName: ServiceName,
 		}),
-		jaeger.WithSDK(&sdkTrace.Config{DefaultSampler: sdkTrace.AlwaysSample()}),
+		jaeger.WithSDK(&trace.Config{DefaultSampler: trace.AlwaysSample()}),
 	)
 	if err != nil {
 		g.Log().Fatal(err)
@@ -56,8 +37,16 @@ func main() {
 	s := g.Server()
 	s.Group("/", func(group *ghttp.RouterGroup) {
 		group.Middleware(ghttp.MiddlewareServerTracing)
-		group.ALL("/redis", new(tracingApi))
+		group.GET("/hello", HelloHandler)
 	})
 	s.SetPort(8199)
 	s.Run()
+}
+
+func HelloHandler(r *ghttp.Request) {
+	ctx, span := gtrace.Tracer().Start(r.Context(), "HelloHandler")
+	defer span.End()
+
+	value := baggage.Value(ctx, "name")
+	r.Response.Write("hello:", value.AsString())
 }

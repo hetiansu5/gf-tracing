@@ -3,16 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"gftracing/example/grpc+db+redis+log/protobuf/user"
-	"gftracing/tracing"
+	"gftracing/grpc+db+redis+log/protobuf/user"
 	"github.com/gogf/gcache-adapter/adapter"
-	"github.com/gogf/gf/errors/gerror"
 	"github.com/gogf/gf/frame/g"
-	"github.com/gogf/gf/util/gvalid"
+	"github.com/gogf/katyusha/krpc"
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"net"
 	"time"
 )
@@ -20,9 +17,35 @@ import (
 type server struct{}
 
 const (
-	JaegerEndpoint = "http://localhost:14268/s/traces"
+	JaegerEndpoint = "http://localhost:14268/api/traces"
 	ServiceName    = "tracing-grpc-server"
 )
+
+func main() {
+	flush := initTracer()
+	defer flush()
+
+	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
+
+	address := ":8000"
+	listen, err := net.Listen("tcp", address)
+	if err != nil {
+		g.Log().Fatalf("failed to listen: %v", err)
+	}
+	s := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			krpc.Server.UnaryError,
+			krpc.Server.UnaryRecover,
+			krpc.Server.UnaryTracing,
+			krpc.Server.UnaryValidate,
+		),
+	)
+	user.RegisterUserServer(s, &server{})
+	g.Log().Printf("grpc server starts listening on %s", address)
+	if err := s.Serve(listen); err != nil {
+		g.Log().Fatalf("failed to serve: %v", err)
+	}
+}
 
 // initTracer creates a new trace provider instance and registers it as global trace provider.
 func initTracer() func() {
@@ -32,24 +55,12 @@ func initTracer() func() {
 		jaeger.WithProcess(jaeger.Process{
 			ServiceName: ServiceName,
 		}),
-		jaeger.WithSDK(&sdkTrace.Config{DefaultSampler: sdkTrace.AlwaysSample()}),
+		jaeger.WithSDK(&trace.Config{DefaultSampler: trace.AlwaysSample()}),
 	)
 	if err != nil {
 		g.Log().Fatal(err)
 	}
 	return flush
-}
-
-// Common validation unary interpreter.
-func UnaryValidate(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	// It does nothing if there's no validation tag in the struct definition.
-	if err := gvalid.CheckStruct(req, nil); err != nil {
-		return nil, gerror.NewCode(
-			int(codes.InvalidArgument),
-			gerror.Current(err).Error(),
-		)
-	}
-	return handler(ctx, req)
 }
 
 // Insert is a route handler for inserting user info into dtabase.
@@ -97,26 +108,4 @@ func (s *server) Delete(ctx context.Context, req *user.DeleteReq) (*user.DeleteR
 
 func (s *server) userCacheKey(id int32) string {
 	return fmt.Sprintf(`userInfo:%d`, id)
-}
-
-func main() {
-	flush := initTracer()
-	defer flush()
-
-	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
-
-	listen, err := net.Listen("tcp", ":8000")
-	if err != nil {
-		g.Log().Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(
-			UnaryValidate,
-			tracing.UnaryServerInterceptor,
-		),
-	)
-	user.RegisterUserServer(s, &server{})
-	if err := s.Serve(listen); err != nil {
-		g.Log().Fatalf("failed to serve: %v", err)
-	}
 }

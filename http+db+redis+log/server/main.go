@@ -7,7 +7,7 @@ import (
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"time"
 )
 
@@ -18,6 +18,21 @@ const (
 	ServiceName    = "tracing-http-server"
 )
 
+func main() {
+	flush := initTracer()
+	defer flush()
+
+	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
+
+	s := g.Server()
+	s.Group("/", func(group *ghttp.RouterGroup) {
+		group.Middleware(ghttp.MiddlewareServerTracing)
+		group.ALL("/user", new(tracingApi))
+	})
+	s.SetPort(8199)
+	s.Run()
+}
+
 // initTracer creates a new trace provider instance and registers it as global trace provider.
 func initTracer() func() {
 	// Create and install Jaeger export pipeline.
@@ -26,7 +41,7 @@ func initTracer() func() {
 		jaeger.WithProcess(jaeger.Process{
 			ServiceName: ServiceName,
 		}),
-		jaeger.WithSDK(&sdkTrace.Config{DefaultSampler: sdkTrace.AlwaysSample()}),
+		jaeger.WithSDK(&trace.Config{DefaultSampler: trace.AlwaysSample()}),
 	)
 	if err != nil {
 		g.Log().Fatal(err)
@@ -104,19 +119,4 @@ func (api *tracingApi) Delete(r *ghttp.Request) {
 
 func (api *tracingApi) userCacheKey(id int) string {
 	return fmt.Sprintf(`userInfo:%d`, id)
-}
-
-func main() {
-	flush := initTracer()
-	defer flush()
-
-	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
-
-	s := g.Server()
-	s.Group("/", func(group *ghttp.RouterGroup) {
-		group.Middleware(ghttp.MiddlewareServerTracing)
-		group.ALL("/user", new(tracingApi))
-	})
-	s.SetPort(8199)
-	s.Run()
 }

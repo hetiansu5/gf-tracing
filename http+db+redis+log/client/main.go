@@ -14,6 +14,13 @@ const (
 	ServiceName    = "tracing-http-client"
 )
 
+func main() {
+	flush := initTracer()
+	defer flush()
+
+	StartRequests()
+}
+
 // initTracer creates a new trace provider instance and registers it as global trace provider.
 func initTracer() func() {
 	// Create and install Jaeger export pipeline.
@@ -43,7 +50,8 @@ func StartRequests() {
 		},
 	)
 	if idStr == "" {
-		g.Log().Ctx(ctx).Fatal("retrieve empty id string")
+		g.Log().Ctx(ctx).Print("retrieve empty id string")
+		return
 	}
 	g.Log().Ctx(ctx).Print("insert:", idStr)
 
@@ -64,11 +72,4 @@ func StartRequests() {
 		},
 	)
 	g.Log().Ctx(ctx).Print("delete:", idStr, deleteResult)
-}
-
-func main() {
-	flush := initTracer()
-	defer flush()
-
-	StartRequests()
 }
