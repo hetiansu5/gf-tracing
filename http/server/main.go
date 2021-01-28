@@ -4,7 +4,6 @@ import (
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
 	"github.com/gogf/gf/net/gtrace"
-	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
@@ -44,9 +43,10 @@ func main() {
 }
 
 func HelloHandler(r *ghttp.Request) {
-	ctx, span := gtrace.Tracer().Start(r.Context(), "HelloHandler")
+	ctx, span := gtrace.NewSpan(r.Context(), "HelloHandler")
 	defer span.End()
 
-	value := baggage.Value(ctx, "name")
-	r.Response.Write("hello:", value.AsString())
+	value := gtrace.GetBaggageVar(ctx, "name").String()
+
+	r.Response.Write("hello:", value)
 }

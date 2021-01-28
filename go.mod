@@ -4,7 +4,7 @@ go 1.11
 
 require (
 	github.com/gogf/gcache-adapter v0.1.0
-	github.com/gogf/gf v1.15.2
+	github.com/gogf/gf v1.15.3-0.20210128051109-2451b40d3eba
 	github.com/gogf/katyusha v0.1.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.4.3

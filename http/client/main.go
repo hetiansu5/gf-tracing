@@ -5,9 +5,7 @@ import (
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
 	"github.com/gogf/gf/net/gtrace"
-	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -15,13 +13,6 @@ const (
 	JaegerEndpoint = "http://localhost:14268/api/traces"
 	ServiceName    = "tracing-http-client"
 )
-
-func main() {
-	flush := initTracer()
-	defer flush()
-
-	StartRequests()
-}
 
 // initTracer creates a new trace provider instance and registers it as global trace provider.
 func initTracer() func() {
@@ -39,11 +30,19 @@ func initTracer() func() {
 	return flush
 }
 
+func main() {
+	flush := initTracer()
+	defer flush()
+
+	StartRequests()
+}
+
 func StartRequests() {
-	ctx, span := gtrace.Tracer().Start(context.Background(), "StartRequests")
+	ctx, span := gtrace.NewSpan(context.Background(), "StartRequests")
 	defer span.End()
 
-	ctx = baggage.ContextWithValues(ctx, label.String("name", "john"))
+	ctx = gtrace.SetBaggageValue(ctx, "name", "john")
+
 	client := g.Client().Use(ghttp.MiddlewareClientTracing)
 
 	content := client.Ctx(ctx).GetContent("http://127.0.0.1:8199/hello")

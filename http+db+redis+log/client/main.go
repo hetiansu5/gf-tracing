@@ -38,7 +38,7 @@ func initTracer() func() {
 }
 
 func StartRequests() {
-	ctx, span := gtrace.Tracer().Start(context.Background(), "StartRequests")
+	ctx, span := gtrace.NewSpan(context.Background(), "StartRequests")
 	defer span.End()
 
 	client := g.Client().Use(ghttp.MiddlewareClientTracing)

@@ -40,7 +40,7 @@ func initTracer() func() {
 }
 
 func StartRequests() {
-	ctx, span := gtrace.Tracer().Start(context.Background(), "StartRequests")
+	ctx, span := gtrace.NewSpan(context.Background(), "StartRequests")
 	defer span.End()
 
 	grpcClientOptions := make([]grpc.DialOption, 0)
