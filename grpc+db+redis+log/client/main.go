@@ -62,6 +62,9 @@ func StartRequests() {
 
 	client := user.NewUserClient(conn)
 
+	// Baggage.
+	ctx = gtrace.SetBaggageValue(ctx, "uid", 100)
+
 	// Insert.
 	insertRes, err := client.Insert(ctx, &user.InsertReq{
 		Name: "john",
