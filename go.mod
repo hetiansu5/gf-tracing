@@ -4,8 +4,8 @@ go 1.11
 
 require (
 	github.com/gogf/gcache-adapter v0.1.0
-	github.com/gogf/gf v1.15.3-0.20210128060913-80248e9a6e37
-	github.com/gogf/katyusha v0.1.2-0.20210128060850-6fff85f91cc9
+	github.com/gogf/gf v1.15.4-0.20210203072741-6135085d619d
+	github.com/gogf/katyusha v0.1.2-0.20210203072924-61d9cc2addf5
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.4.3
 	github.com/mattn/go-runewidth v0.0.10 // indirect

@@ -2,39 +2,25 @@ package main
 
 import (
 	"context"
+	"gftracing/tracing"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
 	"github.com/gogf/gf/net/gtrace"
-	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 const (
-	JaegerEndpoint = "http://localhost:14268/api/traces"
-	ServiceName    = "tracing-http-client"
+	ServiceName       = "tracing-http-client"
+	JaegerUdpEndpoint = "localhost:6831"
 )
 
 func main() {
-	flush := initTracer()
-	defer flush()
-
-	StartRequests()
-}
-
-// initTracer creates a new trace provider instance and registers it as global trace provider.
-func initTracer() func() {
-	// Create and install Jaeger export pipeline.
-	flush, err := jaeger.InstallNewPipeline(
-		jaeger.WithCollectorEndpoint(JaegerEndpoint),
-		jaeger.WithProcess(jaeger.Process{
-			ServiceName: ServiceName,
-		}),
-		jaeger.WithSDK(&sdkTrace.Config{DefaultSampler: sdkTrace.AlwaysSample()}),
-	)
+	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
 		g.Log().Fatal(err)
 	}
-	return flush
+	defer flush()
+
+	StartRequests()
 }
 
 func StartRequests() {

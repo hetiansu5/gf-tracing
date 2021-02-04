@@ -2,24 +2,26 @@ package main
 
 import (
 	"fmt"
+	"gftracing/tracing"
 	"github.com/gogf/gcache-adapter/adapter"
 	"github.com/gogf/gf/errors/gerror"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
-	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	"go.opentelemetry.io/otel/sdk/trace"
 	"time"
 )
 
 type tracingApi struct{}
 
 const (
-	JaegerEndpoint = "http://localhost:14268/api/traces"
-	ServiceName    = "tracing-http-server"
+	ServiceName       = "tracing-http-server"
+	JaegerUdpEndpoint = "localhost:6831"
 )
 
 func main() {
-	flush := initTracer()
+	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	if err != nil {
+		g.Log().Fatal(err)
+	}
 	defer flush()
 
 	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
@@ -31,22 +33,6 @@ func main() {
 	})
 	s.SetPort(8199)
 	s.Run()
-}
-
-// initTracer creates a new trace provider instance and registers it as global trace provider.
-func initTracer() func() {
-	// Create and install Jaeger export pipeline.
-	flush, err := jaeger.InstallNewPipeline(
-		jaeger.WithCollectorEndpoint(JaegerEndpoint),
-		jaeger.WithProcess(jaeger.Process{
-			ServiceName: ServiceName,
-		}),
-		jaeger.WithSDK(&trace.Config{DefaultSampler: trace.AlwaysSample()}),
-	)
-	if err != nil {
-		g.Log().Fatal(err)
-	}
-	return flush
 }
 
 type userApiInsert struct {

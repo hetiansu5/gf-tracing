@@ -3,12 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"gftracing/grpc+db+redis+log/protobuf/user"
+	"gftracing/examples/grpc+db+redis+log/protobuf/user"
+	"gftracing/tracing"
 	"github.com/gogf/gcache-adapter/adapter"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/katyusha/krpc"
-	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
 	"net"
 	"time"
@@ -17,12 +16,15 @@ import (
 type server struct{}
 
 const (
-	JaegerEndpoint = "http://localhost:14268/api/traces"
-	ServiceName    = "tracing-grpc-server"
+	ServiceName       = "tracing-grpc-server"
+	JaegerUdpEndpoint = "localhost:6831"
 )
 
 func main() {
-	flush := initTracer()
+	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	if err != nil {
+		g.Log().Fatal(err)
+	}
 	defer flush()
 
 	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
@@ -45,22 +47,6 @@ func main() {
 	if err := s.Serve(listen); err != nil {
 		g.Log().Fatalf("failed to serve: %v", err)
 	}
-}
-
-// initTracer creates a new trace provider instance and registers it as global trace provider.
-func initTracer() func() {
-	// Create and install Jaeger export pipeline.
-	flush, err := jaeger.InstallNewPipeline(
-		jaeger.WithCollectorEndpoint(JaegerEndpoint),
-		jaeger.WithProcess(jaeger.Process{
-			ServiceName: ServiceName,
-		}),
-		jaeger.WithSDK(&trace.Config{DefaultSampler: trace.AlwaysSample()}),
-	)
-	if err != nil {
-		g.Log().Fatal(err)
-	}
-	return flush
 }
 
 // Insert is a route handler for inserting user info into dtabase.

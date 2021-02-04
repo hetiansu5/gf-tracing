@@ -2,20 +2,22 @@ package main
 
 import (
 	"context"
+	"gftracing/tracing"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/gtrace"
 	"github.com/gogf/gf/util/gutil"
-	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	"go.opentelemetry.io/otel/sdk/trace"
 )
 
 const (
-	JaegerEndpoint = "http://localhost:14268/api/traces"
-	ServiceName    = "tracing-inprocess"
+	ServiceName       = "tracing-inprocess"
+	JaegerUdpEndpoint = "localhost:6831"
 )
 
 func main() {
-	flush := initTracer()
+	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	if err != nil {
+		g.Log().Fatal(err)
+	}
 	defer flush()
 
 	ctx, span := gtrace.NewSpan(context.Background(), "main")
@@ -26,22 +28,6 @@ func main() {
 
 	user100 := GetUser(ctx, 100)
 	g.Dump(user100)
-}
-
-// initTracer creates a new trace provider instance and registers it as global trace provider.
-func initTracer() func() {
-	// Create and install Jaeger export pipeline.
-	flush, err := jaeger.InstallNewPipeline(
-		jaeger.WithCollectorEndpoint(JaegerEndpoint),
-		jaeger.WithProcess(jaeger.Process{
-			ServiceName: ServiceName,
-		}),
-		jaeger.WithSDK(&trace.Config{DefaultSampler: trace.AlwaysSample()}),
-	)
-	if err != nil {
-		g.Log().Fatal(err)
-	}
-	return flush
 }
 
 // GetUser retrieves and returns hard coded user data for demonstration.

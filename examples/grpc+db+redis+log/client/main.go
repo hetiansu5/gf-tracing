@@ -2,41 +2,27 @@ package main
 
 import (
 	"context"
-	"gftracing/grpc+db+redis+log/protobuf/user"
+	"gftracing/examples/grpc+db+redis+log/protobuf/user"
+	"gftracing/tracing"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/gtrace"
 	"github.com/gogf/katyusha/krpc"
-	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
 )
 
 const (
-	JaegerEndpoint = "http://localhost:14268/api/traces"
-	ServiceName    = "tracing-grpc-client"
+	ServiceName       = "tracing-grpc-client"
+	JaegerUdpEndpoint = "localhost:6831"
 )
 
 func main() {
-	flush := initTracer()
-	defer flush()
-
-	StartRequests()
-}
-
-// initTracer creates a new trace provider instance and registers it as global trace provider.
-func initTracer() func() {
-	// Create and install Jaeger export pipeline.
-	flush, err := jaeger.InstallNewPipeline(
-		jaeger.WithCollectorEndpoint(JaegerEndpoint),
-		jaeger.WithProcess(jaeger.Process{
-			ServiceName: ServiceName,
-		}),
-		jaeger.WithSDK(&trace.Config{DefaultSampler: trace.AlwaysSample()}),
-	)
+	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
 		g.Log().Fatal(err)
 	}
-	return flush
+	defer flush()
+
+	StartRequests()
 }
 
 func StartRequests() {
