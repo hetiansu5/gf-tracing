@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"gftracing/examples/grpc+db+redis+log/protobuf/user"
+	"gftracing/examples/grpc_db_redis_log/protobuf/user"
 	"gftracing/tracing"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/gtrace"

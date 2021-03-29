@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"gftracing/examples/grpc+db+redis+log/protobuf/user"
+	"gftracing/examples/grpc_db_redis_log/protobuf/user"
 	"gftracing/tracing"
 	"github.com/gogf/gcache-adapter/adapter"
 	"github.com/gogf/gf/frame/g"
