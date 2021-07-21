@@ -10,16 +10,10 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
-const (
-	// The service name.
-	jaegerEnvServiceName = "JAEGER_SERVICE_NAME"
-)
-
 // InitJaeger initializes and registers jaeger to global TracerProvider.
 //
-// The output parameter `flush` is used for waiting exported trace spans to be uploaded,
+// The output parameter `tp` is used for waiting exported trace spans to be uploaded,
 // which is useful if your program is ending and you do not want to lose recent spans.
-
 func InitJaeger(serviceName, endpoint string) (tp *trace.TracerProvider, err error) {
 	var endpointOption jaeger.EndpointOption
 	if strings.HasPrefix(endpoint, "http") {

@@ -24,12 +24,10 @@ func main() {
 	if err != nil {
 		g.Log().Fatal(err)
 	}
+	// Cleanly shutdown and flush telemetry when the application exits.
+	defer tp.Shutdown(context.Background())
 
 	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
-
-	ctx := context.TODO()
-	// Cleanly shutdown and flush telemetry when the application exits.
-	defer tp.Shutdown(ctx)
 
 	s := g.Server()
 	s.Group("/", func(group *ghttp.RouterGroup) {

@@ -19,11 +19,10 @@ func main() {
 	if err != nil {
 		g.Log().Fatal(err)
 	}
-	ctx := context.TODO()
+	// Cleanly shutdown and flush telemetry when the application exits.
+	defer tp.Shutdown(context.Background())
 
-	defer tp.Shutdown(ctx)
-
-	ctx, span := gtrace.NewSpan(ctx, "main")
+	ctx, span := gtrace.NewSpan(context.Background(), "main")
 
 	defer span.End()
 

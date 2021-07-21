@@ -20,8 +20,7 @@ func main() {
 		g.Log().Fatal(err)
 	}
 
-	ctx := context.TODO()
-	defer tp.Shutdown(ctx)
+	defer tp.Shutdown(context.Background())
 
 	s := g.Server()
 	s.Group("/", func(group *ghttp.RouterGroup) {

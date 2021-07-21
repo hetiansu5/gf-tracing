@@ -26,9 +26,8 @@ func main() {
 	if err != nil {
 		g.Log().Fatal(err)
 	}
-
-	ctx := context.TODO()
-	defer tp.Shutdown(ctx)
+	// Cleanly shutdown and flush telemetry when the application exits.
+	defer tp.Shutdown(context.Background())
 
 	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
 

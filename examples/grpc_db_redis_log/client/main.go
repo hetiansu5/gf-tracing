@@ -22,14 +22,13 @@ func main() {
 		g.Log().Fatal(err)
 	}
 
-	ctx := context.TODO()
-	defer tp.Shutdown(ctx)
+	defer tp.Shutdown(context.Background())
 
-	StartRequests(ctx)
+	StartRequests()
 }
 
-func StartRequests(ctx context.Context) {
-	ctx, span := gtrace.NewSpan(ctx, "StartRequests")
+func StartRequests() {
+	ctx, span := gtrace.NewSpan(context.Background(), "StartRequests")
 	defer span.End()
 
 	grpcClientOptions := make([]grpc.DialOption, 0)
