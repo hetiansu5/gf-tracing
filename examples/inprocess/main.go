@@ -16,9 +16,6 @@ const (
 )
 
 func main() {
-	ctx, span := gtrace.NewSpan(context.Background(), "main")
-	defer span.End()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -36,6 +33,8 @@ func main() {
 			g.Log().Ctx(ctx).Fatal(err)
 		}
 	}(ctx)
+	ctx, span := gtrace.NewSpan(ctx, "main")
+	defer span.End()
 
 	user1 := GetUser(ctx, 1)
 	g.Dump(user1)
