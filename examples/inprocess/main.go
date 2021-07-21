@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"time"
 
 	"github.com/gogf/gf-tracing/tracing"
 	"github.com/gogf/gf/frame/g"
@@ -16,24 +15,12 @@ const (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	tp, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	_, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
-		g.Log().Ctx(ctx).Fatal(err)
+		g.Log().Fatal(err)
 	}
+	ctx, span := gtrace.NewSpan(context.Background(), "main")
 
-	// Cleanly shutdown and flush telemetry when the application exits.
-	defer func(ctx context.Context) {
-		// Do not make the application hang when it is shutdown.
-		ctx, cancel = context.WithTimeout(ctx, time.Second*5)
-		defer cancel()
-		if err := tp.Shutdown(ctx); err != nil {
-			g.Log().Ctx(ctx).Fatal(err)
-		}
-	}(ctx)
-	ctx, span := gtrace.NewSpan(ctx, "main")
 	defer span.End()
 
 	user1 := GetUser(ctx, 1)
