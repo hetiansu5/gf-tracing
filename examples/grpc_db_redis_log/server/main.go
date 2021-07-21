@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"gftracing/examples/grpc_db_redis_log/protobuf/user"
-	"gftracing/tracing"
+	"net"
+	"time"
+
 	"github.com/gogf/gcache-adapter/adapter"
+	"github.com/gogf/gf-tracing/examples/grpc_db_redis_log/protobuf/user"
+	"github.com/gogf/gf-tracing/tracing"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/katyusha/krpc"
 	"google.golang.org/grpc"
-	"net"
-	"time"
 )
 
 type server struct{}
@@ -21,13 +22,26 @@ const (
 )
 
 func main() {
-	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
-	if err != nil {
-		g.Log().Fatal(err)
-	}
-	defer flush()
 
-	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tp, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	if err != nil {
+		g.Log().Ctx(ctx).Fatal(err)
+	}
+
+	// Cleanly shutdown and flush telemetry when the application exits.
+	defer func(ctx context.Context) {
+		// Do not make the application hang when it is shutdown.
+		ctx, cancel = context.WithTimeout(ctx, time.Second*5)
+		defer cancel()
+		if err := tp.Shutdown(ctx); err != nil {
+			g.Log().Ctx(ctx).Fatal(err)
+		}
+	}(ctx)
+
+	g.DB().Ctx(ctx).GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
 
 	address := ":8000"
 	listen, err := net.Listen("tcp", address)
@@ -43,16 +57,16 @@ func main() {
 		),
 	)
 	user.RegisterUserServer(s, &server{})
-	g.Log().Printf("grpc server starts listening on %s", address)
+	g.Log().Ctx(ctx).Printf("grpc server starts listening on %s", address)
 	if err := s.Serve(listen); err != nil {
-		g.Log().Fatalf("failed to serve: %v", err)
+		g.Log().Ctx(ctx).Fatalf("failed to serve: %v", err)
 	}
 }
 
 // Insert is a route handler for inserting user info into dtabase.
 func (s *server) Insert(ctx context.Context, req *user.InsertReq) (*user.InsertRes, error) {
 	res := user.InsertRes{}
-	result, err := g.Table("user").Ctx(ctx).Insert(g.Map{
+	result, err := g.Model("user").Ctx(ctx).Insert(g.Map{
 		"name": req.Name,
 	})
 	if err != nil {
@@ -67,7 +81,7 @@ func (s *server) Insert(ctx context.Context, req *user.InsertReq) (*user.InsertR
 // if there's nothing in the redis, it then does db select.
 func (s *server) Query(ctx context.Context, req *user.QueryReq) (*user.QueryRes, error) {
 	res := user.QueryRes{}
-	err := g.Table("user").
+	err := g.Model("user").
 		Ctx(ctx).
 		Cache(5*time.Second, s.userCacheKey(req.Id)).
 		WherePri(req.Id).
@@ -81,7 +95,7 @@ func (s *server) Query(ctx context.Context, req *user.QueryReq) (*user.QueryRes,
 // Delete is a route handler for deleting specified user info.
 func (s *server) Delete(ctx context.Context, req *user.DeleteReq) (*user.DeleteRes, error) {
 	res := user.DeleteRes{}
-	_, err := g.Table("user").
+	_, err := g.Model("user").
 		Ctx(ctx).
 		Cache(-1, s.userCacheKey(req.Id)).
 		WherePri(req.Id).

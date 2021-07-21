@@ -1,7 +1,10 @@
 package main
 
 import (
-	"gftracing/tracing"
+	"context"
+	"time"
+
+	"github.com/gogf/gf-tracing/tracing"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
 	"github.com/gogf/gf/net/gtrace"
@@ -13,11 +16,23 @@ const (
 )
 
 func main() {
-	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tp, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
-		g.Log().Fatal(err)
+		g.Log().Ctx(ctx).Fatal(err)
 	}
-	defer flush()
+
+	// Cleanly shutdown and flush telemetry when the application exits.
+	defer func(ctx context.Context) {
+		// Do not make the application hang when it is shutdown.
+		ctx, cancel = context.WithTimeout(ctx, time.Second*5)
+		defer cancel()
+		if err := tp.Shutdown(ctx); err != nil {
+			g.Log().Ctx(ctx).Fatal(err)
+		}
+	}(ctx)
 
 	s := g.Server()
 	s.Group("/", func(group *ghttp.RouterGroup) {
