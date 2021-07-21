@@ -15,16 +15,18 @@ const (
 )
 
 func main() {
-	_, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	tp, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
 		g.Log().Fatal(err)
 	}
+	ctx := context.TODO()
+	defer tp.Shutdown(ctx)
 
-	StartRequests()
+	StartRequests(ctx)
 }
 
-func StartRequests() {
-	ctx, span := gtrace.NewSpan(context.Background(), "StartRequests")
+func StartRequests(ctx context.Context) {
+	ctx, span := gtrace.NewSpan(ctx, "StartRequests")
 	defer span.End()
 
 	client := g.Client().Use(ghttp.MiddlewareClientTracing)

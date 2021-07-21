@@ -22,10 +22,13 @@ const (
 )
 
 func main() {
-	_, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	tp, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
 		g.Log().Fatal(err)
 	}
+
+	ctx := context.TODO()
+	defer tp.Shutdown(ctx)
 
 	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
 

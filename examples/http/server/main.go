@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+
 	"github.com/gogf/gf-tracing/tracing"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
@@ -13,10 +15,13 @@ const (
 )
 
 func main() {
-	_, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	tp, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
 		g.Log().Fatal(err)
 	}
+
+	ctx := context.TODO()
+	defer tp.Shutdown(ctx)
 
 	s := g.Server()
 	s.Group("/", func(group *ghttp.RouterGroup) {
