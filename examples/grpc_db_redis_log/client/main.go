@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"gftracing/examples/grpc_db_redis_log/protobuf/user"
-	"gftracing/tracing"
+
+	"github.com/gogf/gf-tracing/examples/grpc_db_redis_log/protobuf/user"
+	"github.com/gogf/gf-tracing/tracing"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/gtrace"
 	"github.com/gogf/katyusha/krpc"
@@ -16,11 +17,12 @@ const (
 )
 
 func main() {
-	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	tp, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
 		g.Log().Fatal(err)
 	}
-	defer flush()
+
+	defer tp.Shutdown(context.Background())
 
 	StartRequests()
 }

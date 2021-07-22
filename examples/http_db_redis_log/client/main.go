@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"gftracing/tracing"
+
+	"github.com/gogf/gf-tracing/tracing"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
 	"github.com/gogf/gf/net/gtrace"
@@ -14,11 +15,11 @@ const (
 )
 
 func main() {
-	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	tp, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
 		g.Log().Fatal(err)
 	}
-	defer flush()
+	defer tp.Shutdown(context.Background())
 
 	StartRequests()
 }

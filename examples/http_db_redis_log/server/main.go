@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"gftracing/tracing"
+	"time"
+
 	"github.com/gogf/gcache-adapter/adapter"
+	"github.com/gogf/gf-tracing/tracing"
 	"github.com/gogf/gf/errors/gerror"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
-	"time"
 )
 
 type tracingApi struct{}
@@ -18,11 +20,12 @@ const (
 )
 
 func main() {
-	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	tp, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
 		g.Log().Fatal(err)
 	}
-	defer flush()
+	// Cleanly shutdown and flush telemetry when the application exits.
+	defer tp.Shutdown(context.Background())
 
 	g.DB().GetCache().SetAdapter(adapter.NewRedis(g.Redis()))
 
@@ -47,7 +50,7 @@ func (api *tracingApi) Insert(r *ghttp.Request) {
 	if err := r.Parse(&dataReq); err != nil {
 		r.Response.WriteExit(gerror.Current(err))
 	}
-	result, err := g.Table("user").Ctx(r.Context()).Insert(g.Map{
+	result, err := g.Model("user").Ctx(r.Context()).Insert(g.Map{
 		"name": dataReq.Name,
 	})
 	if err != nil {
@@ -70,7 +73,7 @@ func (api *tracingApi) Query(r *ghttp.Request) {
 	if err := r.Parse(&dataReq); err != nil {
 		r.Response.WriteExit(gerror.Current(err))
 	}
-	one, err := g.Table("user").
+	one, err := g.Model("user").
 		Ctx(r.Context()).
 		Cache(5*time.Second, api.userCacheKey(dataReq.Id)).
 		FindOne(dataReq.Id)
@@ -92,7 +95,7 @@ func (api *tracingApi) Delete(r *ghttp.Request) {
 	if err := r.Parse(&dataReq); err != nil {
 		r.Response.WriteExit(gerror.Current(err))
 	}
-	_, err := g.Table("user").
+	_, err := g.Model("user").
 		Ctx(r.Context()).
 		Cache(-1, api.userCacheKey(dataReq.Id)).
 		WherePri(dataReq.Id).

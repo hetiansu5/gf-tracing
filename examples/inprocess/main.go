@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"gftracing/tracing"
+
+	"github.com/gogf/gf-tracing/tracing"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/gtrace"
 	"github.com/gogf/gf/util/gutil"
@@ -14,13 +15,15 @@ const (
 )
 
 func main() {
-	flush, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
+	tp, err := tracing.InitJaeger(ServiceName, JaegerUdpEndpoint)
 	if err != nil {
 		g.Log().Fatal(err)
 	}
-	defer flush()
+	// Cleanly shutdown and flush telemetry when the application exits.
+	defer tp.Shutdown(context.Background())
 
 	ctx, span := gtrace.NewSpan(context.Background(), "main")
+
 	defer span.End()
 
 	user1 := GetUser(ctx, 1)
