@@ -8,9 +8,8 @@ require (
 	github.com/gogf/katyusha v0.1.3-0.20210402080039-f9c0f380474e
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.4.3
-	go.opentelemetry.io/otel v1.0.0-RC1.0.20210720160618-63dfe64aaea1 // indirect
-	go.opentelemetry.io/otel/exporters/jaeger v1.0.0-RC1.0.20210720160618-63dfe64aaea1 // indirect
-	go.opentelemetry.io/otel/sdk v1.0.0-RC1.0.20210720160618-63dfe64aaea1 // indirect
+	go.opentelemetry.io/otel v1.0.0-RC2.0.20210727152922-fd9de7ec027f // indirect
+	go.opentelemetry.io/otel/exporters/jaeger v1.0.0-RC2.0.20210727152922-fd9de7ec027f // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	google.golang.org/grpc v1.36.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
