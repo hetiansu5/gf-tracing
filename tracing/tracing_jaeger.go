@@ -21,7 +21,12 @@ func InitJaeger(serviceName, endpoint string) (tp *trace.TracerProvider, err err
 		endpointOption = jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(endpoint))
 	} else {
 		// UDP.
-		endpointOption = jaeger.WithAgentEndpoint(jaeger.WithAgentHost(endpoint))
+		agentConfig := strings.SplitN(endpoint, ":", 2)
+		if len(agentConfig) == 2 {
+			endpointOption = jaeger.WithAgentEndpoint(jaeger.WithAgentHost(agentConfig[0]), jaeger.WithAgentPort(agentConfig[1]))
+		} else {
+			endpointOption = jaeger.WithAgentEndpoint(jaeger.WithAgentHost(agentConfig[0]))
+		}
 	}
 
 	// Create the Jaeger exporter
